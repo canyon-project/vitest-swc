@@ -43,6 +43,7 @@
     "@rollup/plugin-commonjs": "^28.0.6",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^16.0.1",
+    "@swc/core": "1.11.31",
     "@types/debug": "latest",
     "@types/istanbul-lib-coverage": "latest",
     "@types/istanbul-lib-instrument": "^1.7.7",
@@ -56,6 +57,7 @@
     "rimraf": "^6.0.1",
     "rollup": "^4.44.2",
     "rollup-plugin-dts": "^6.2.1",
+    "swc-plugin-coverage-instrument": "^0.0.27",
     "unplugin-isolated-decl": "^0.14.5",
     "unplugin-oxc": "^0.4.6",
     "vitest": "4.0.0-beta.2"

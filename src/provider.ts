@@ -1,3 +1,4 @@
+import { transformSync } from '@swc/core'
 import type { CoverageMap } from 'istanbul-lib-coverage'
 import type { Instrumenter } from 'istanbul-lib-instrument'
 import type { ProxifiedModule } from 'magicast'
@@ -28,25 +29,7 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
 
   initialize(ctx: Vitest): void {
     this._initialize(ctx)
-
-    this.instrumenter = createInstrumenter({
-      produceSourceMap: true,
-      autoWrap: false,
-      esModules: true,
-      compact: false,
-      coverageVariable: COVERAGE_STORE_KEY,
-      // @ts-expect-error missing type
-      coverageGlobalScope: 'globalThis',
-      coverageGlobalScopeFunc: false,
-      ignoreClassMethods: this.options.ignoreClassMethods,
-      parserPlugins: [
-        ...istanbulDefaults.instrumenter.parserPlugins,
-        ['importAttributes', { deprecatedAssertSyntax: true }],
-      ],
-      generatorOpts: {
-        importAttributesKeyword: 'with',
-      },
-    })
+    // 移除 istanbul instrumenter 初始化，swc 不需要
   }
 
   onFileTransform(sourceCode: string, id: string, pluginCtx: any): { code: string; map: any } | undefined {
@@ -54,34 +37,45 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
     // File extension itself is .vue, but it contains CSS.
     // e.g. "Example.vue?vue&type=style&index=0&scoped=f7f04e08&lang.css"
 
-    console.log('1111')
-
     if (isCSSRequest(id)) {
       return
     }
-    console.log('222',this.isIncluded)
     if (!this.isIncluded(removeQueryParameters(id))) {
       return
     }
-    console.log('333')
     const sourceMap = pluginCtx.getCombinedSourcemap()
     sourceMap.sources = sourceMap.sources.map(removeQueryParameters)
 
     sourceCode = sourceCode
       // Exclude SWC's decorators that are left in source maps
       .replaceAll('_ts_decorate', '/* istanbul ignore next */_ts_decorate')
-
       // Exclude in-source test's test cases
       .replaceAll(/(if +\(import\.meta\.vitest\))/g, '/* istanbul ignore next */ $1')
 
-    const code = this.instrumenter.instrumentSync(
-      sourceCode,
-      id,
-      sourceMap as any,
-    )
-    console.log(code,'code')
-    const map = this.instrumenter.lastSourceMap() as any
+    // 使用 swc 进行插桩
+    const swcOptions = {
+      filename: id,
+      sourceMaps: true,
+      jsc: {
+        parser: { syntax: 'typescript', decorators: true }, // 可根据实际情况调整
+        target: 'es2020',
+        experimental: {
+          plugins: [
+            [
+              'swc-plugin-coverage-instrument',
+              {
+                coverageVariable: COVERAGE_STORE_KEY,
+                ignoreClassMethods: this.options.ignoreClassMethods,
+                // 可根据需要添加其它参数
+              },
+            ],
+          ],
+        },
+      },
+      inputSourceMap: JSON.stringify(sourceMap),
+    }
 
+    const { code, map } = transformSync(sourceCode, swcOptions)
     return { code, map }
   }
 
@@ -171,10 +165,33 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
     const cacheKey = new Date().getTime()
     const coverageMap = this.createCoverageMap()
 
-    const transform = this.createUncoveredFileTransformer(this.ctx)
+    // swc 插桩函数
+    const transform = async (filename: string) => {
+      const source = await fs.readFile(filename.split('?')[0], 'utf8')
+      const { code, map } = transformSync(source, {
+        filename,
+        sourceMaps: true,
+        jsc: {
+          parser: { syntax: 'typescript', decorators: true },
+          target: 'es2020',
+          experimental: {
+            plugins: [
+              [
+                'swc-plugin-coverage-instrument',
+                {
+                  coverageVariable: COVERAGE_STORE_KEY,
+                  ignoreClassMethods: this.options.ignoreClassMethods,
+                },
+              ],
+            ],
+          },
+        },
+      })
+      // swc 没有 lastFileCoverage，需自行收集覆盖率数据
+      // 这里可根据 swc-plugin-coverage-instrument 的实现调整
+      // coverageMap.addFileCoverage(...)
+    }
 
-    // Note that these cannot be run parallel as synchronous instrumenter.lastFileCoverage
-    // returns the coverage of the last transformed file
     for (const [index, filename] of uncoveredFiles.entries()) {
       let timeout: ReturnType<typeof setTimeout> | undefined
       let start: number | undefined
@@ -182,18 +199,15 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
       if (debug.enabled) {
         start = performance.now()
         timeout = setTimeout(() => debug(c.bgRed(`File "${filename}" is taking longer than 3s`)), 3_000)
-
         debug('Uncovered file %d/%d', index, uncoveredFiles.length)
       }
 
-      // Make sure file is not served from cache so that instrumenter loads up requested file coverage
       await transform(`${filename}?cache=${cacheKey}`)
-      const lastCoverage = this.instrumenter.lastFileCoverage()
-      coverageMap.addFileCoverage(lastCoverage)
+      // 这里 swc 没有 lastFileCoverage，需根据 swc-plugin-coverage-instrument 的实现收集覆盖率
+      // coverageMap.addFileCoverage(...)
 
       if (debug.enabled) {
         clearTimeout(timeout)
-
         const diff = performance.now() - start!
         const color = diff > 500 ? c.bgRed : c.bgGreen
         debug(`${color(` ${diff.toFixed()} ms `)} ${filename}`)
