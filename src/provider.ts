@@ -53,14 +53,17 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
     // Istanbul/babel cannot instrument CSS - e.g. Vue imports end up here.
     // File extension itself is .vue, but it contains CSS.
     // e.g. "Example.vue?vue&type=style&index=0&scoped=f7f04e08&lang.css"
+
+    console.log('1111')
+
     if (isCSSRequest(id)) {
       return
     }
-
+    console.log('222',this.isIncluded)
     if (!this.isIncluded(removeQueryParameters(id))) {
       return
     }
-
+    console.log('333')
     const sourceMap = pluginCtx.getCombinedSourcemap()
     sourceMap.sources = sourceMap.sources.map(removeQueryParameters)
 
@@ -76,6 +79,7 @@ export class IstanbulCoverageProvider extends BaseCoverageProvider<ResolvedCover
       id,
       sourceMap as any,
     )
+    console.log(code,'code')
     const map = this.instrumenter.lastSourceMap() as any
 
     return { code, map }

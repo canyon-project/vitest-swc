@@ -2,7 +2,7 @@ import type { CoverageMapData } from 'istanbul-lib-coverage'
 import type { CoverageProviderModule } from 'vitest/node'
 import type { IstanbulCoverageProvider } from './provider'
 import { COVERAGE_STORE_KEY } from './constants'
-
+console.log('???Sss')
 const mod: CoverageProviderModule = {
   takeCoverage() {
     // @ts-expect-error -- untyped global
@@ -43,7 +43,7 @@ const mod: CoverageProviderModule = {
       /* @vite-ignore */
       providerPath
     )) as typeof import('./provider')
-
+    // console.log(IstanbulCoverageProvider)
     return new IstanbulCoverageProvider()
   },
 }
