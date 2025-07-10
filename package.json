@@ -1,0 +1,60 @@
+{
+  "name": "@vitest/coverage-istanbul",
+  "type": "module",
+  "version": "1.0.0-beta.1",
+  "keywords": [
+    "vite",
+    "vitest",
+    "test",
+    "coverage",
+    "istanbul"
+  ],
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./*": "./*"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rimraf dist && rollup -c",
+    "dev": "rollup -c --watch --watch.include 'src/**'"
+  },
+  "dependencies": {
+    "@istanbuljs/schema": "^0.1.3",
+    "debug": "latest",
+    "istanbul-lib-coverage": "latest",
+    "istanbul-lib-instrument": "^6.0.3",
+    "istanbul-lib-report": "latest",
+    "istanbul-lib-source-maps": "latest",
+    "istanbul-reports": "latest",
+    "magicast": "latest",
+    "tinyrainbow": "latest"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "^28.0.6",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^16.0.1",
+    "@types/debug": "latest",
+    "@types/istanbul-lib-coverage": "latest",
+    "@types/istanbul-lib-instrument": "^1.7.7",
+    "@types/istanbul-lib-report": "latest",
+    "@types/istanbul-lib-source-maps": "latest",
+    "@types/istanbul-reports": "latest",
+    "@vitest/coverage-v8": "3.2.4",
+    "pathe": "latest",
+    "rimraf": "^6.0.1",
+    "rollup": "^4.44.2",
+    "rollup-plugin-dts": "^6.2.1",
+    "unplugin-isolated-decl": "^0.14.5",
+    "unplugin-oxc": "^0.4.6",
+    "vitest": "latest"
+  }
+}
